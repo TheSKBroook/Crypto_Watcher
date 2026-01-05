@@ -5,34 +5,38 @@ const fakeDatabase = {
     {
       id: 1,
       name: 'User1',
-      coins: {
-        bitcoin: {
+      coins: [
+        {
+          id : 'bitcoin',
           lastDirection: 'down',
           lastLevel: ChangeLevel.LV2,
           lastNotification: 1767590000000
         },
-        ethereum: {
+        {
+          id : 'ethereum',
           lastDirection: 'down',
           lastLevel: ChangeLevel.LV1,
           lastNotification: 1767590000000
         }
-      }
+      ]
     },
     {
       id: 2,
       name: 'User2',
-      coins: {
-        bitcoin: {
+      coins: [
+        {
+          id : 'bitcoin',
           lastDirection: 'down',
           lastLevel: ChangeLevel.LV2,
           lastNotification: 1767590000000
         },
-        ethereum: {
+        {
+          id : 'ethereum',
           lastDirection: 'up',
           lastLevel: ChangeLevel.LV1,
           lastNotification: 1767590000000
         }
-      }
+      ]
     }
   ]
 };
