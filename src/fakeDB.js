@@ -1,3 +1,5 @@
+import { ChangeLevel } from './constants/levels.js';
+
 const fakeDatabase = {
   users: [
     {
@@ -5,14 +7,14 @@ const fakeDatabase = {
       name: 'User1',
       coins: {
         bitcoin: {
-          lastDirection: 'up',
-          lastLevel: 50000,
-          lastNotification: 1704412800000
-        },
-        eth: {
           lastDirection: 'down',
-          lastLevel: 3000,
-          lastNotification: 1704412800000
+          lastLevel: ChangeLevel.LV2,
+          lastNotification: 1767590000000
+        },
+        ethereum: {
+          lastDirection: 'down',
+          lastLevel: ChangeLevel.LV1,
+          lastNotification: 1767590000000
         }
       }
     },
@@ -21,14 +23,14 @@ const fakeDatabase = {
       name: 'User2',
       coins: {
         bitcoin: {
-          lastDirection: 'up',
-          lastLevel: 45000,
-          lastNotification: 1704412800000
+          lastDirection: 'down',
+          lastLevel: ChangeLevel.LV2,
+          lastNotification: 1767590000000
         },
-        eth: {
+        ethereum: {
           lastDirection: 'up',
-          lastLevel: 2500,
-          lastNotification: 1704412800000
+          lastLevel: ChangeLevel.LV1,
+          lastNotification: 1767590000000
         }
       }
     }
