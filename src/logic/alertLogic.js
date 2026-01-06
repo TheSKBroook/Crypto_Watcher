@@ -1,5 +1,5 @@
 
-import fakeDatabase from '../fakeDB.js';
+import { fakeCoinDataList, fakeUserDatabase } from '../fakeDB.js';
 import { ChangeLevel, getLevelFromChange } from '../constants/levels.js';
 
 const threshold = 5;
@@ -14,30 +14,25 @@ function checkPriceOverThreshold( coins ) {
     return newCoinList;
 }
 
-function findUsersByCoins( coins ) {
-    // this is a database query placeholder
-    // will need to be moved to another files later
-    // 
-    // Here we will be using that fakeDB 
-
-    const coinSet = new Set(coins.map(c => c.coinName));
-
-    return fakeDatabase.users.filter(user => 
-        user.coins.some(userCoin => coinSet.has(userCoin.id))
-    );
+function checkDirectionChanged( currentCoinData, coinData ) {
+    return currentCoinData.lastDirection !== coinData.lastDirection;
 }
 
-function checkDirectionChanged( coin, userCoinData ) {
-    const currentDirection = coin.priceChange1h > 0 ? 'up' : 'down';
-    return currentDirection !== userCoinData.lastDirection;
+function checkLevelChanged( currentCoinData, coinData ) {
+    return currentCoinData.lastLevel !== coinData.lastLevel;
 }
 
-function checkLevelChanged( coin, userCoinData ) {
-    return getLevelFromChange( coin.priceChange1h ) !== userCoinData.lastLevel;
+function checkTimerExpired( currentCoinData, coinData ) {
+    return currentCoinData.lastNotification - coinData.lastNotification >= 3600000; // 1 hour
 }
 
-function checkTimerExpired( coin, userCoinData ) {
-    return Date.now() - userCoinData.lastNotification >= 3600000; // 1 hour
+function updateCoinData( currentCoinData, lastCoinData ) {
+    lastCoinData.lastDirection = currentCoinData.lastDirection;
+    lastCoinData.lastLevel = currentCoinData.lastLevel;
+    lastCoinData.lastNotification = currentCoinData.lastNotification;
+
+    console.log("Updated coin data:", lastCoinData);
+    return;
 }
 
 export function alertLogic( coins ) {
@@ -48,29 +43,87 @@ export function alertLogic( coins ) {
         return; 
     }
 
-    findUsersByCoins( coins ).forEach( user => {
-        for ( const coin of coins ) {
-            const userCoinData = user.coins.find( c => c.id === coin.coinName );
-            if ( !userCoinData ) { continue; }
-            if (checkDirectionChanged( coin, userCoinData )) { alertAction( coin, user, "direction" ); continue; }
-            if (checkLevelChanged( coin, userCoinData )) { alertAction( coin, user, "level" ); continue; }
-            if (checkTimerExpired( coin, userCoinData )) { alertAction( coin, user, "timer" ); continue; }
+    const notifiedCoins = [];
+    const checkFunctions = [
+        { check: checkDirectionChanged, reason: 'direction' },
+        { check: checkLevelChanged, reason: 'level' },
+        { check: checkTimerExpired, reason: 'timer' }
+    ];
+
+    for ( const coin of coins ) {
+        const currentCoinData = {
+            id: coin.coinName,
+            lastDirection: coin.priceChange1h > 0 ? 'up' : 'down',
+            lastLevel: getLevelFromChange( coin.priceChange1h ),
+            lastNotification: Date.now()
+        }
+        const lastCoinData = fakeCoinDataList.coins.find( c => c.id === coin.coinName );
+        if ( !lastCoinData ) { 
+            throw new Error("Coin data not found for " + coin.coinName); 
         }
 
-        sendNotification( user );
-    });
+        for ( const { check, reason } of checkFunctions ) {
+            if ( check( currentCoinData, lastCoinData )) {
+                notifiedCoins.push( coin );
+                updateCoinData( currentCoinData, lastCoinData );
+                break; // Stop after first match
+            }
+        }
+    }
+
+    sendNotification( notifiedCoins );
 
     return;
+
+    // Advanced feature for later use
+    // findUsersByCoins( coins ).forEach( user => {
+    //     for ( const coin of coins ) {
+    //         const userCoinData = user.coins.find( c => c.id === coin.coinName );
+    //         if ( !userCoinData ) { continue; }
+    //         if (checkDirectionChanged( coin, userCoinData )) { alertAction( coin, user, "direction" ); continue; }
+    //         if (checkLevelChanged( coin, userCoinData )) { alertAction( coin, user, "level" ); continue; }
+    //         if (checkTimerExpired( coin, userCoinData )) { alertAction( coin, user, "timer" ); continue; }
+    //     }
+
+    //     sendNotification( user );
+    // });
+
 }
 
 
-function alertAction ( coin, user, reason ) {
-    console.log(`Alert action for ${user.name} on ${coin.coinName} due to ${reason}`);
+// Maybe put this in another file later
+function sendNotification( coins ) {
+    if ( coins.length === 0 ) {
+        console.log("No coins to notify.");
+        return;
+    }
+
+    console.log("Sending notification...");
+    
+    const notificationItems = coins.map( coin => {
+        const direction = coin.priceChange1h > 0 ? '漲幅' : '跌幅';
+        
+        return `•${direction}:
+            ${coin.coinName}${direction}達${coin.priceChange1h}%
+            行情波動,立即行動
+            目前價格:$${coin.currentPrice}`;
+    }).join('\n');
+    
+    const message = `幣圈行情通知:\n\n${notificationItems}\n\n--\nCrypto Watcher`;
+    console.log(message);
     return;
 }
 
-function sendNotification( user ) {
-    console.log(`Sending notification to ${user.name}`);
-    console.log("");
-    return;
+// This is advanced feature for later use
+function findUsersByCoins( coins ) {
+    // this is a database query placeholder
+    // will need to be moved to another files later
+    // 
+    // Here we will be using that fakeDB 
+
+    const coinSet = new Set(coins.map(c => c.coinName));
+
+    return fakeUserDatabase.users.filter(user => 
+        user.coins.some(userCoin => coinSet.has(userCoin.id))
+    );
 }

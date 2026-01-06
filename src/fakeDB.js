@@ -1,6 +1,33 @@
 import { ChangeLevel } from './constants/levels.js';
 
-const fakeDatabase = {
+// I feel like this can just be stored at ram... since this changes a lot
+// and losing it on restart is not a big deal.
+function initializeFakeCoinDataList() {
+  return {
+    coins: [
+      {
+        id: 'bitcoin',
+        lastDirection: 'down',
+        lastLevel: ChangeLevel.LV2,
+        lastNotification: 1767590000000
+      },
+      {
+        id: 'ethereum',
+        lastDirection: 'down',
+        lastLevel: ChangeLevel.LV1,
+        lastNotification: 1767590000000
+      }
+    ]
+  };
+}
+
+export let fakeCoinDataList = initializeFakeCoinDataList();
+
+export const fakeWatchList = {
+  coins: ['bitcoin', 'ethereum']
+}
+
+export const fakeUserDatabase = {
   users: [
     {
       id: 1,
@@ -41,4 +68,4 @@ const fakeDatabase = {
   ]
 };
 
-export default fakeDatabase;
+export default fakeCoinDataList;
