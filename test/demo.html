@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Watcher Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .info-text {
+            color: #999;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-start:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-start:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-stop {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .btn-stop:hover:not(:disabled) {
+            background: #ee5a52;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn-stop:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status.active {
+            display: flex;
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .status.error {
+            display: flex;
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status.active .status-dot {
+            background: #28a745;
+        }
+
+        .status.error .status-dot {
+            background: #dc3545;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .log-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            border: 2px solid #e0e0e0;
+        }
+
+        .log-title {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid #667eea;
+            background: white;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #555;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-entry.notification {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+
+        .log-entry.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+            color: #dc3545;
+        }
+
+        .log-entry.success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+            color: #28a745;
+        }
+
+        .log-entry .timestamp {
+            color: #999;
+            font-size: 0.9em;
+            margin-right: 8px;
+        }
+
+        .coin-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .coin-tag {
+            background: #e7f3ff;
+            border: 1px solid #667eea;
+            color: #667eea;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .clear-log {
+            margin-top: 12px;
+            padding: 8px 12px;
+            background: #e0e0e0;
+            color: #333;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .clear-log:hover {
+            background: #d0d0d0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Crypto Watcher</h1>
+            <p>Monitor cryptocurrency price changes in real-time</p>
+        </div>
+
+        <div class="status" id="status">
+            <div class="status-dot"></div>
+            <span id="statusText">Polling active...</span>
+        </div>
+
+        <div class="form-group">
+            <label for="coinInput">Coins to Monitor:</label>
+            <input 
+                type="text" 
+                id="coinInput" 
+                placeholder="e.g., bitcoin, ethereum, ripple (comma-separated)" 
+                value="bitcoin, ethereum"
+            />
+            <p class="info-text">Enter coin names separated by commas</p>
+            <div class="coin-tags" id="coinTags">
+                <span class="coin-tag">bitcoin</span>
+                <span class="coin-tag">ethereum</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="pollInterval">Polling Interval (seconds):</label>
+            <input 
+                type="number" 
+                id="pollInterval" 
+                min="5" 
+                max="300" 
+                value="20"
+            />
+            <p class="info-text">Minimum 5 seconds, Maximum 300 seconds</p>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-start" id="startBtn">Start Polling</button>
+            <button class="btn-stop" id="stopBtn" disabled>Stop Polling</button>
+        </div>
+
+        <div>
+            <div class="log-title">Activity Log:</div>
+            <div class="log-container" id="logContainer"></div>
+            <button class="clear-log" id="clearLogBtn">Clear Log</button>
+        </div>
+    </div>
+
+    <script type="module">
+        class CryptoWatcherDemo {
+            constructor() {
+                this.isPolling = false;
+                this.pollingInterval = null;
+                this.coins = ['bitcoin', 'ethereum'];
+                this.pollDuration = 20000; // 20 seconds
+                this.logs = [];
+
+                this.initElements();
+                this.initEventListeners();
+            }
+
+            initElements() {
+                this.startBtn = document.getElementById('startBtn');
+                this.stopBtn = document.getElementById('stopBtn');
+                this.coinInput = document.getElementById('coinInput');
+                this.pollIntervalInput = document.getElementById('pollInterval');
+                this.logContainer = document.getElementById('logContainer');
+                this.clearLogBtn = document.getElementById('clearLogBtn');
+                this.status = document.getElementById('status');
+                this.statusText = document.getElementById('statusText');
+                this.coinTags = document.getElementById('coinTags');
+            }
+
+            initEventListeners() {
+                this.startBtn.addEventListener('click', () => this.start());
+                this.stopBtn.addEventListener('click', () => this.stop());
+                this.clearLogBtn.addEventListener('click', () => this.clearLog());
+                this.coinInput.addEventListener('change', () => this.updateCoins());
+                this.pollIntervalInput.addEventListener('change', () => this.updatePollInterval());
+            }
+
+            updateCoins() {
+                const input = this.coinInput.value;
+                this.coins = input.split(',').map(c => c.trim().toLowerCase()).filter(c => c);
+                this.updateCoinTags();
+                this.log(`Updated coins to monitor: ${this.coins.join(', ')}`, 'success');
+            }
+
+            updateCoinTags() {
+                this.coinTags.innerHTML = this.coins
+                    .map(coin => `<span class="coin-tag">${coin}</span>`)
+                    .join('');
+            }
+
+            updatePollInterval() {
+                let interval = parseInt(this.pollIntervalInput.value);
+                if (interval < 5) interval = 5;
+                if (interval > 300) interval = 300;
+                this.pollDuration = interval * 1000;
+                this.pollIntervalInput.value = interval;
+                this.log(`Updated polling interval to ${interval} seconds`, 'success');
+            }
+
+            start() {
+                if (this.coins.length === 0) {
+                    this.log('Please enter at least one coin to monitor', 'error');
+                    return;
+                }
+
+                this.isPolling = true;
+                this.startBtn.disabled = true;
+                this.stopBtn.disabled = false;
+                this.coinInput.disabled = true;
+                this.pollIntervalInput.disabled = true;
+                this.status.classList.add('active');
+                this.statusText.textContent = `Polling active... (${this.coins.join(', ')})`;
+
+                this.log(`✅ Polling started for coins: ${this.coins.join(', ')}`, 'success');
+                this.log(`📊 Interval: ${this.pollDuration / 1000} seconds`, 'success');
+
+                // Run immediately
+                this.runPolling();
+
+                // Then run on interval
+                this.pollingInterval = setInterval(() => this.runPolling(), this.pollDuration);
+            }
+
+            stop() {
+                this.isPolling = false;
+                this.startBtn.disabled = false;
+                this.stopBtn.disabled = true;
+                this.coinInput.disabled = false;
+                this.pollIntervalInput.disabled = false;
+                this.status.classList.remove('active');
+                this.statusText.textContent = 'Polling stopped';
+
+                if (this.pollingInterval) {
+                    clearInterval(this.pollingInterval);
+                    this.pollingInterval = null;
+                }
+
+                this.log('⏹️  Polling stopped', 'error');
+            }
+
+            runPolling() {
+                this.log(`🔍 Fetching data for: ${this.coins.join(', ')}...`);
+
+                fetch('/api/poll', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ coins: this.coins })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        this.log(`❌ Error: ${data.error}`, 'error');
+                        if (data.details) {
+                            this.log(`Details: ${data.details}`, 'error');
+                        }
+                        return;
+                    }
+
+                    this.handlePollResponse(data);
+                })
+                .catch(error => {
+                    this.log(`❌ Network error: ${error.message}`, 'error');
+                });
+            }
+
+            handlePollResponse(data) {
+                if (!data.coins || data.coins.length === 0) {
+                    this.log('No data received from API', 'error');
+                    return;
+                }
+
+                this.log(`✓ Received data for ${data.coins.length} coin(s)`);
+
+                // Show all coins and their price changes
+                data.coins.forEach(coin => {
+                    const direction = coin.priceChange1h > 0 ? '📈' : '📉';
+                    const color = Math.abs(coin.priceChange1h) >= 5 ? 'notification' : 'info';
+                    this.log(
+                        `${direction} ${coin.coinName.toUpperCase()}: ${coin.priceChange1h.toFixed(2)}% | $${coin.currentPrice.toLocaleString('en-US', {maximumFractionDigits: 2})}`,
+                        color
+                    );
+                });
+
+                // Display the formatted notification if it exists
+                if (data.notification) {
+                    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'notification');
+                    const lines = data.notification.split('\n');
+                    lines.forEach(line => {
+                        if (line.trim()) {
+                            this.log(line, 'notification');
+                        }
+                    });
+                    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'notification');
+                } else {
+                    this.log('✓ No alerts triggered (all changes < 5%)');
+                }
+
+                this.log(`⏱️  Next check in ${this.pollDuration / 1000}s`);
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log-entry ${type}`;
+                logEntry.innerHTML = `<span class="timestamp">[${timestamp}]</span>${message}`;
+
+                this.logContainer.appendChild(logEntry);
+                this.logContainer.scrollTop = this.logContainer.scrollHeight;
+
+                this.logs.push({ timestamp, message, type });
+
+                // Keep only last 100 logs
+                if (this.logs.length > 100) {
+                    this.logs.shift();
+                }
+            }
+
+            clearLog() {
+                this.logContainer.innerHTML = '';
+                this.logs = [];
+            }
+        }
+
+        // Initialize the demo
+        new CryptoWatcherDemo();
+    </script>
+</body>
+</html>

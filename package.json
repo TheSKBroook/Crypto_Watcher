@@ -2,7 +2,15 @@
   "name": "crypto-watcher",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "demo": "node demo-server.js"
+  },
   "dependencies": {
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.16"
   }
 }

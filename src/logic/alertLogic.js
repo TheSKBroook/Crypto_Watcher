@@ -2,7 +2,7 @@
 import { fakeCoinDataList, fakeUserDatabase } from '../fakeDB.js';
 import { ChangeLevel, getLevelFromChange } from '../constants/levels.js';
 
-const threshold = 5;
+const threshold = 0.01;
 
 function checkPriceOverThreshold( coins ) {
     const newCoinList = [];
@@ -57,9 +57,21 @@ export function alertLogic( coins ) {
             lastLevel: getLevelFromChange( coin.priceChange1h ),
             lastNotification: Date.now()
         }
-        const lastCoinData = fakeCoinDataList.coins.find( c => c.id === coin.coinName );
+        let lastCoinData = fakeCoinDataList.coins.find( c => c.id === coin.coinName );
+        
+        // If coin not found, add it to the database and notify
         if ( !lastCoinData ) { 
-            throw new Error("Coin data not found for " + coin.coinName); 
+            console.log(`New coin detected: ${coin.coinName}. Adding to database...`);
+            lastCoinData = {
+                id: coin.coinName,
+                lastDirection: currentCoinData.lastDirection,
+                lastLevel: currentCoinData.lastLevel,
+                lastNotification: currentCoinData.lastNotification - 3600000 // Set to 1 hour ago to trigger notification
+            };
+            fakeCoinDataList.coins.push( lastCoinData );
+            notifiedCoins.push( coin );
+            console.log(`Added new coin: ${coin.coinName}`);
+            continue;
         }
 
         for ( const { check, reason } of checkFunctions ) {
@@ -71,9 +83,9 @@ export function alertLogic( coins ) {
         }
     }
 
-    sendNotification( notifiedCoins );
+    const notification = sendNotification( notifiedCoins );
 
-    return;
+    return notification;
 
     // Advanced feature for later use
     // findUsersByCoins( coins ).forEach( user => {
@@ -111,7 +123,7 @@ function sendNotification( coins ) {
     
     const message = `幣圈行情通知:\n\n${notificationItems}\n\n--\nCrypto Watcher`;
     console.log(message);
-    return;
+    return message;
 }
 
 // This is advanced feature for later use
