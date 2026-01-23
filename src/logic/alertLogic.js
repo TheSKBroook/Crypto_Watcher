@@ -1,8 +1,12 @@
 
-import { fakeCoinDataList, fakeUserDatabase } from '../fakeDB.js';
-import { ChangeLevel, getLevelFromChange } from '../constants/levels.js';
+import { getLevelFromChange } from '../constants/levels.js';
 
-const threshold = 0.01;
+const threshold = 5;
+
+// Default empty coin data store - can be set via setCoinDataStore()
+let coinDataStore = {
+    coins: []
+};
 
 function checkPriceOverThreshold( coins ) {
     const newCoinList = [];
@@ -35,75 +39,6 @@ function updateCoinData( currentCoinData, lastCoinData ) {
     return;
 }
 
-export function alertLogic( coins ) {
-    console.log("Running alert logic...");
-    coins = checkPriceOverThreshold( coins );
-    if ( coins.length === 0 ) { 
-        console.log("No coins over threshold, skipping alerts.");    
-        return; 
-    }
-
-    const notifiedCoins = [];
-    const checkFunctions = [
-        { check: checkDirectionChanged, reason: 'direction' },
-        { check: checkLevelChanged, reason: 'level' },
-        { check: checkTimerExpired, reason: 'timer' }
-    ];
-
-    for ( const coin of coins ) {
-        const currentCoinData = {
-            id: coin.coinName,
-            lastDirection: coin.priceChange1h > 0 ? 'up' : 'down',
-            lastLevel: getLevelFromChange( coin.priceChange1h ),
-            lastNotification: Date.now()
-        }
-        let lastCoinData = fakeCoinDataList.coins.find( c => c.id === coin.coinName );
-        
-        // If coin not found, add it to the database and notify
-        if ( !lastCoinData ) { 
-            console.log(`New coin detected: ${coin.coinName}. Adding to database...`);
-            lastCoinData = {
-                id: coin.coinName,
-                lastDirection: currentCoinData.lastDirection,
-                lastLevel: currentCoinData.lastLevel,
-                lastNotification: currentCoinData.lastNotification - 3600000 // Set to 1 hour ago to trigger notification
-            };
-            fakeCoinDataList.coins.push( lastCoinData );
-            notifiedCoins.push( coin );
-            console.log(`Added new coin: ${coin.coinName}`);
-            continue;
-        }
-
-        for ( const { check, reason } of checkFunctions ) {
-            if ( check( currentCoinData, lastCoinData )) {
-                notifiedCoins.push( coin );
-                updateCoinData( currentCoinData, lastCoinData );
-                break; // Stop after first match
-            }
-        }
-    }
-
-    const notification = sendNotification( notifiedCoins );
-
-    return notification;
-
-    // Advanced feature for later use
-    // findUsersByCoins( coins ).forEach( user => {
-    //     for ( const coin of coins ) {
-    //         const userCoinData = user.coins.find( c => c.id === coin.coinName );
-    //         if ( !userCoinData ) { continue; }
-    //         if (checkDirectionChanged( coin, userCoinData )) { alertAction( coin, user, "direction" ); continue; }
-    //         if (checkLevelChanged( coin, userCoinData )) { alertAction( coin, user, "level" ); continue; }
-    //         if (checkTimerExpired( coin, userCoinData )) { alertAction( coin, user, "timer" ); continue; }
-    //     }
-
-    //     sendNotification( user );
-    // });
-
-}
-
-
-// Maybe put this in another file later
 function sendNotification( coins ) {
     if ( coins.length === 0 ) {
         console.log("No coins to notify.");
@@ -126,16 +61,113 @@ function sendNotification( coins ) {
     return message;
 }
 
-// This is advanced feature for later use
-function findUsersByCoins( coins ) {
-    // this is a database query placeholder
-    // will need to be moved to another files later
-    // 
-    // Here we will be using that fakeDB 
+/**
+ * Sets the coin data store for alert logic to use.
+ * 
+ * This allows you to inject a different data store (e.g., fakeCoinDataList, database, etc.)
+ * instead of using the default empty list.
+ * 
+ * @param {Object} dataStore - The data store object containing coins array
+ * @param {Array<Object>} dataStore.coins - Array of coin data objects
+ * 
+ * @example
+ * // Import and set the fake database
+ * import { fakeCoinDataList } from '../fakeDB.js';
+ * setCoinDataStore(fakeCoinDataList);
+ * 
+ * // Or use a custom data store
+ * setCoinDataStore({ coins: [] });
+ */
+export function setCoinDataStore(dataStore) {
+    coinDataStore = dataStore;
+    console.log("Coin data store updated.");
+}
 
-    const coinSet = new Set(coins.map(c => c.coinName));
+/**
+ * Gets the current coin data store being used by alert logic.
+ * 
+ * @returns {Object} The current coin data store object
+ * @returns {Array<Object>} returns.coins - Array of coin data objects currently stored
+ * 
+ * @example
+ * const currentStore = getCoinDataStore();
+ * console.log(currentStore.coins); // View all tracked coins
+ */
+export function getCoinDataStore() {
+    return coinDataStore;
+}
 
-    return fakeUserDatabase.users.filter(user => 
-        user.coins.some(userCoin => coinSet.has(userCoin.id))
-    );
+/**
+ * Evaluates cryptocurrency price data and triggers alerts based on predefined conditions.
+ * 
+ * This function filters coins by price change threshold, compares current data against 
+ * stored data, and generates notifications when price direction, volatility level, or 
+ * notification timer conditions are met.
+ * 
+ * @param {Array<Object>} coins - Array of coin objects to evaluate
+ * @param {string} coins[].coinName - The name of the cryptocurrency
+ * @param {number} coins[].priceChange1h - Price change percentage over the last hour
+ * @param {number} coins[].currentPrice - Current price of the coin
+ * @returns {string|undefined} Notification message in Chinese format if alerts are generated, 
+ *                             undefined if no coins exceed the threshold
+ * 
+ * @example
+ * const coins = [
+ *   { coinName: 'BTC', priceChange1h: 0.05, currentPrice: 45000 },
+ *   { coinName: 'ETH', priceChange1h: -0.02, currentPrice: 2500 }
+ * ];
+ * const notification = alertLogic(coins);
+ */
+export function alertLogic( coins ) {
+    console.log("Running alert logic...");
+    coins = checkPriceOverThreshold( coins );
+    if ( coins.length === 0 ) { 
+        console.log("No coins over threshold, skipping alerts.");    
+        return; 
+    }
+
+    const notifiedCoins = [];
+    const checkFunctions = [
+        { check: checkDirectionChanged, reason: 'direction' },
+        { check: checkLevelChanged, reason: 'level' },
+        { check: checkTimerExpired, reason: 'timer' }
+    ];
+
+    for ( const coin of coins ) {
+        const currentCoinData = {
+            id: coin.coinName,
+            lastDirection: coin.priceChange1h > 0 ? 'up' : 'down',
+            lastLevel: getLevelFromChange( coin.priceChange1h ),
+            lastNotification: Date.now()
+        }
+        let lastCoinData = coinDataStore.coins.find( c => c.id === coin.coinName );
+        
+        // If coin not found, add it to the database and notify
+        if ( !lastCoinData ) { 
+            console.log(`New coin detected: ${coin.coinName}. Adding to database...`);
+            lastCoinData = {
+                id: coin.coinName,
+                lastDirection: currentCoinData.lastDirection,
+                lastLevel: currentCoinData.lastLevel,
+                lastNotification: currentCoinData.lastNotification - 3600000 // Set to 1 hour ago to trigger notification
+            };
+            coinDataStore.coins.push( lastCoinData );
+            notifiedCoins.push( coin );
+            console.log(`Added new coin: ${coin.coinName}`);
+            continue;
+        }
+
+        for ( const { check, reason } of checkFunctions ) {
+            if ( check( currentCoinData, lastCoinData )) {
+                notifiedCoins.push( coin );
+                updateCoinData( currentCoinData, lastCoinData );
+                break; // Stop after first match
+            }
+        }
+    }
+
+    const notification = sendNotification( notifiedCoins );
+
+    return notification;
+
 }
